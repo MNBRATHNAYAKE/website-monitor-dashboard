@@ -9,7 +9,7 @@ function App() {
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [fullscreen, setFullscreen] = useState(false);
-  const [error, setError] = useState(""); // 🔹 Inline warning message
+  const [error, setError] = useState(""); // inline warning
 
   // Load monitors from localStorage
   useEffect(() => {
@@ -37,12 +37,11 @@ function App() {
       });
     }
 
-    const audioUrl =
-      status === "down"
-        ? "https://www.soundjay.com/buttons/sounds/beep-07.mp3"
-        : "https://www.soundjay.com/buttons/sounds/button-10.mp3";
-
-    new Audio(audioUrl).play();
+    // 🔊 Play sound only for DOWN
+    if (status === "down") {
+      const audio = new Audio("https://www.soundjay.com/buttons/sounds/beep-07.mp3");
+      audio.play();
+    }
   };
 
   // Check status
@@ -56,6 +55,7 @@ function App() {
       setMonitors((prev) =>
         prev.map((m) => {
           if (m._id === monitor._id) {
+            // Trigger notifications on status change
             if (data.status === "down" && m.status !== "down") notify(m, "down");
             if (data.status === "up" && m.status === "down") notify(m, "up");
 
@@ -73,6 +73,7 @@ function App() {
         })
       );
     } catch (err) {
+      // Handle failed fetch (mark as down silently, no blocking popup)
       setMonitors((prev) =>
         prev.map((m) => {
           if (m._id === monitor._id) {
@@ -101,7 +102,7 @@ function App() {
 
   const addMonitor = () => {
     if (!name || !url) {
-      setError("⚠️ Please enter both name and URL."); // 🔹 Show inline warning
+      setError("⚠️ Please enter both name and URL."); // inline error instead of alert
       return;
     }
 
@@ -156,7 +157,7 @@ function App() {
           />
           <button onClick={addMonitor}>Add Monitor</button>
 
-          {/* 🔹 Inline error message */}
+          {/* Inline error message */}
           {error && <p style={{ color: "red", marginTop: "5px" }}>{error}</p>}
         </div>
 
