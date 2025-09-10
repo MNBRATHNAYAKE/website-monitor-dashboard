@@ -9,6 +9,7 @@ function App() {
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [fullscreen, setFullscreen] = useState(false);
+  const [error, setError] = useState(""); // 🔹 Inline warning message
 
   // Load monitors from localStorage
   useEffect(() => {
@@ -21,7 +22,7 @@ function App() {
     localStorage.setItem("monitors", JSON.stringify(monitors));
   }, [monitors]);
 
-  // Notifications function
+  // Notifications
   const notify = (monitor, status) => {
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") Notification.requestPermission();
@@ -29,9 +30,10 @@ function App() {
     if (Notification.permission === "granted") {
       new Notification(`Monitor ${status.toUpperCase()}: ${monitor.name}`, {
         body: `The site ${monitor.url} is ${status}.`,
-        icon: status === "down"
-          ? "https://cdn-icons-png.flaticon.com/512/564/564619.png"
-          : "https://cdn-icons-png.flaticon.com/512/190/190411.png",
+        icon:
+          status === "down"
+            ? "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+            : "https://cdn-icons-png.flaticon.com/512/190/190411.png",
       });
     }
 
@@ -40,11 +42,10 @@ function App() {
         ? "https://www.soundjay.com/buttons/sounds/beep-07.mp3"
         : "https://www.soundjay.com/buttons/sounds/button-10.mp3";
 
-    const audio = new Audio(audioUrl);
-    audio.play();
+    new Audio(audioUrl).play();
   };
 
-  // Check monitor status
+  // Check status
   const checkMonitorStatus = async (monitor) => {
     try {
       const response = await fetch(
@@ -92,7 +93,7 @@ function App() {
     }
   };
 
-  // Periodic status update every 20s
+  // Auto update every 20s
   useEffect(() => {
     const interval = setInterval(() => monitors.forEach((m) => checkMonitorStatus(m)), 20000);
     return () => clearInterval(interval);
@@ -100,9 +101,10 @@ function App() {
 
   const addMonitor = () => {
     if (!name || !url) {
-      // 🔹 Just ignore invalid input silently, no blocking alert
+      setError("⚠️ Please enter both name and URL."); // 🔹 Show inline warning
       return;
     }
+
     const newMonitor = {
       _id: Date.now().toString(),
       name,
@@ -113,6 +115,7 @@ function App() {
     setMonitors((prev) => [...prev, newMonitor]);
     setName("");
     setUrl("");
+    setError(""); // clear warning
     checkMonitorStatus(newMonitor);
   };
 
@@ -141,9 +144,20 @@ function App() {
 
       <div className="controls">
         <div className="add-monitor">
-          <input placeholder="Monitor Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <input placeholder="Monitor URL" value={url} onChange={(e) => setUrl(e.target.value)} />
+          <input
+            placeholder="Monitor Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            placeholder="Monitor URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
           <button onClick={addMonitor}>Add Monitor</button>
+
+          {/* 🔹 Inline error message */}
+          {error && <p style={{ color: "red", marginTop: "5px" }}>{error}</p>}
         </div>
 
         <div className="filter-sort">
