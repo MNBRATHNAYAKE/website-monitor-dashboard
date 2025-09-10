@@ -9,7 +9,6 @@ function App() {
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [fullscreen, setFullscreen] = useState(false);
-  const [error, setError] = useState(""); // inline warning
 
   // Load monitors from localStorage
   useEffect(() => {
@@ -22,7 +21,7 @@ function App() {
     localStorage.setItem("monitors", JSON.stringify(monitors));
   }, [monitors]);
 
-  // Notifications
+  // Browser notification only (no sound)
   const notify = (monitor, status) => {
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") Notification.requestPermission();
@@ -36,12 +35,6 @@ function App() {
             : "https://cdn-icons-png.flaticon.com/512/190/190411.png",
       });
     }
-
-    // 🔊 Play sound only for DOWN
-    if (status === "down") {
-      const audio = new Audio("https://www.soundjay.com/buttons/sounds/beep-07.mp3");
-      audio.play();
-    }
   };
 
   // Check status
@@ -53,59 +46,58 @@ function App() {
       const data = await response.json();
 
       setMonitors((prev) =>
-        prev.map((m) => {
-          if (m._id === monitor._id) {
-            // Trigger notifications on status change
-            if (data.status === "down" && m.status !== "down") notify(m, "down");
-            if (data.status === "up" && m.status === "down") notify(m, "up");
+        prev.map((m) =>
+          m._id === monitor._id
+            ? {
+                ...m,
+                status: data.status,
+                usedFallback: data.usedFallback,
+                history: [
+                  ...m.history.slice(-9),
+                  {
+                    timestamp: new Date().toISOString(),
+                    responseTime: data.responseTime,
+                  },
+                ],
+              }
+            : m
+        )
+      );
 
-            return {
-              ...m,
-              status: data.status,
-              usedFallback: data.usedFallback,
-              history: [
-                ...m.history.slice(-9),
-                { timestamp: new Date().toISOString(), responseTime: data.responseTime },
-              ],
-            };
-          }
-          return m;
-        })
-      );
+      // Trigger notification only if status changed
+      if (monitor.status !== data.status) notify(monitor, data.status);
     } catch (err) {
-      // Handle failed fetch (mark as down silently, no blocking popup)
       setMonitors((prev) =>
-        prev.map((m) => {
-          if (m._id === monitor._id) {
-            if (m.status !== "down") notify(m, "down");
-            return {
-              ...m,
-              status: "down",
-              usedFallback: false,
-              history: [
-                ...m.history.slice(-9),
-                { timestamp: new Date().toISOString(), responseTime: 0 },
-              ],
-            };
-          }
-          return m;
-        })
+        prev.map((m) =>
+          m._id === monitor._id
+            ? {
+                ...m,
+                status: "down",
+                usedFallback: false,
+                history: [
+                  ...m.history.slice(-9),
+                  { timestamp: new Date().toISOString(), responseTime: 0 },
+                ],
+              }
+            : m
+        )
       );
+
+      if (monitor.status !== "down") notify(monitor, "down");
     }
   };
 
-  // Auto update every 20s
+  // Periodic status update every 20s
   useEffect(() => {
-    const interval = setInterval(() => monitors.forEach((m) => checkMonitorStatus(m)), 20000);
+    const interval = setInterval(
+      () => monitors.forEach((m) => checkMonitorStatus(m)),
+      20000
+    );
     return () => clearInterval(interval);
   }, [monitors]);
 
   const addMonitor = () => {
-    if (!name || !url) {
-      setError("⚠️ Please enter both name and URL."); // inline error instead of alert
-      return;
-    }
-
+    if (!name || !url) return alert("Enter name and URL");
     const newMonitor = {
       _id: Date.now().toString(),
       name,
@@ -116,27 +108,34 @@ function App() {
     setMonitors((prev) => [...prev, newMonitor]);
     setName("");
     setUrl("");
-    setError(""); // clear warning
     checkMonitorStatus(newMonitor);
   };
 
-  const deleteMonitor = (id) => setMonitors((prev) => prev.filter((m) => m._id !== id));
+  const deleteMonitor = (id) =>
+    setMonitors((prev) => prev.filter((m) => m._id !== id));
 
   const toggleFullscreen = () => {
-    if (!fullscreen) document.documentElement.requestFullscreen();
-    else document.exitFullscreen();
+    if (!fullscreen) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
     setFullscreen(!fullscreen);
   };
 
   const getAverageResponseTime = (history) => {
     if (!history.length) return 0;
-    return Math.round(history.reduce((acc, h) => acc + h.responseTime, 0) / history.length);
+    const sum = history.reduce((acc, h) => acc + h.responseTime, 0);
+    return Math.round(sum / history.length);
   };
 
+  // Filter & sort
   const displayedMonitors = monitors
     .filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
     .sort((a, b) =>
-      sortBy === "name" ? a.name.localeCompare(b.name) : a.status.localeCompare(b.status)
+      sortBy === "name"
+        ? a.name.localeCompare(b.name)
+        : a.status.localeCompare(b.status)
     );
 
   return (
@@ -156,9 +155,6 @@ function App() {
             onChange={(e) => setUrl(e.target.value)}
           />
           <button onClick={addMonitor}>Add Monitor</button>
-
-          {/* Inline error message */}
-          {error && <p style={{ color: "red", marginTop: "5px" }}>{error}</p>}
         </div>
 
         <div className="filter-sort">
