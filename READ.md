@@ -1,6 +1,6 @@
 # Website Monitoring Dashboard 🚀
 
-A simple **website monitoring dashboard** that checks the status of multiple websites in real-time. Features **fullscreen mode** and persistent monitors on page refresh.
+A simple **website monitoring dashboard** that checks the status of multiple websites in real-time. Features **fullscreen mode**, persistent monitors on page refresh, and an **Advanced Check** for detailed status information.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -8,7 +8,7 @@ A simple **website monitoring dashboard** that checks the status of multiple web
 
 ## 🌐 Live Demo
 
-Check it out here: [https://github.com/MNBRATHNAYAKE/website-monitor-dashboard](https://github.com/MNBRATHNAYAKE/website-monitor-dashboard)
+Check it out here: [https://yourusername.github.io/website-monitor-dashboard/](https://yourusername.github.io/website-monitor-dashboard/)
 
 ---
 
@@ -16,6 +16,10 @@ Check it out here: [https://github.com/MNBRATHNAYAKE/website-monitor-dashboard](
 
 * Monitor multiple websites at once.
 * Shows **Up / Down** status for each site.
+* **Advanced Check** using Puppeteer backend:
+  * Shows when advanced check is in use 
+  * Response times
+  * Content presence verification
 * Fullscreen toggle for distraction-free view.
 * Monitors persist on page refresh.
 * Responsive and clean UI.
@@ -25,7 +29,7 @@ Check it out here: [https://github.com/MNBRATHNAYAKE/website-monitor-dashboard](
 ## 🛠 Technologies
 
 * **Frontend:** HTML, CSS, JavaScript
-* **Backend (optional):** Node.js
+* **Backend:** Node.js with Puppeteer for Advanced Check
 
 ---
 
@@ -34,18 +38,23 @@ Check it out here: [https://github.com/MNBRATHNAYAKE/website-monitor-dashboard](
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/MNBRATHNAYAKE/website-monitor-dashboard
+git clone https://github.com/yourusername/website-monitor-dashboard.git
 cd website-monitor-dashboard
 ```
 
-2. Open `index.html` in your browser.
-
-3. (Optional) If using Node.js backend:
+2. Install backend dependencies:
 
 ```bash
 npm install
+```
+
+3. Start the Puppeteer backend server:
+
+```bash
 node server.js
 ```
+
+4. Open `index.html` in your browser to view the dashboard.
 
 ---
 
@@ -72,4 +81,4 @@ This project is licensed under the **MIT License**.
 
 **Nuwan Rathnayake**
 
-* GitHub: [https://github.com/MNBRATHNAYAKE](https://github.com/MNBRATHNAYAKE)
+* GitHub: [https://github.com/yourusername](https://github.com/yourusername)
