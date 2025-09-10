@@ -49,14 +49,6 @@ node server.js
 
 ---
 
-## 🚀 Deployment
-
-This project can be hosted on **GitHub Pages**:
-
-1. Go to your repository → **Settings → Pages**
-2. Select branch: `main`, folder: `/ (root)` → **Save**
-3. Access your live dashboard at:
-   `https://github.com/MNBRATHNAYAKE/website-monitor-dashboard`
 
 ---
 
