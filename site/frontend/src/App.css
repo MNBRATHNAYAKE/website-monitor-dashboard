@@ -9,6 +9,25 @@ h1 { text-align:center; font-size:2.5rem; color:#4cafef; margin-bottom:20px; }
 .add-monitor button, .filter-sort button { padding:10px 20px; border-radius:6px; border:none; background:#4cafef; color:#fff; font-weight:bold; cursor:pointer; transition:0.3s; }
 .add-monitor button:hover, .filter-sort button:hover { background:#3580c7; }
 
+.add-monitor-button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  background: #4cafef;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.add-monitor-button:hover {
+  background: #3580c7;
+}
+.filter-sort select + .add-monitor-button {
+  margin-left: 10px; /* optional spacing from dropdown */
+}
+
+
 .dashboard { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
 
 .monitor-card { background:#2c2c3e; padding:15px; border-radius:12px; box-shadow:0 0 15px rgba(0,0,0,0.5); transition:0.2s; }
@@ -23,7 +42,10 @@ h1 { text-align:center; font-size:2.5rem; color:#4cafef; margin-bottom:20px; }
 
 .fallback-indicator { font-size:0.8rem; color:#ff9800; margin-left:5px; font-weight:bold; }
 
+
+
 @media screen and (max-width: 768px) {
   .dashboard { grid-template-columns: 1fr; }
   .monitor-card { width: 100%; }
 }
+
