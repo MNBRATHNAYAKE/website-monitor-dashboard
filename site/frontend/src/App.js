@@ -18,22 +18,18 @@ function App() {
   const [fullscreen, setFullscreen] = useState(false);
   const [expanded, setExpanded] = useState(null);
 
-  // Load monitors from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("monitors");
     if (saved) setMonitors(JSON.parse(saved));
   }, []);
 
-  // Save monitors to localStorage
   useEffect(() => {
     localStorage.setItem("monitors", JSON.stringify(monitors));
   }, [monitors]);
 
-  // Browser notification
   const notify = (monitor, status) => {
     if (!("Notification" in window)) return;
     if (Notification.permission !== "granted") Notification.requestPermission();
-
     if (Notification.permission === "granted") {
       new Notification(`Monitor ${status.toUpperCase()}: ${monitor.name}`, {
         body: `The site ${monitor.url} is ${status}.`,
@@ -45,7 +41,6 @@ function App() {
     }
   };
 
-  // Check monitor status
   const checkMonitorStatus = async (monitor) => {
     try {
       const response = await fetch(
@@ -57,7 +52,6 @@ function App() {
         prev.map((m) => {
           if (m._id === monitor._id) {
             const newStatus = data.status;
-
             if (m.status !== newStatus) {
               notify(m, newStatus);
               m.statusHistory = [
@@ -65,7 +59,7 @@ function App() {
                 { timestamp: new Date().toISOString(), status: newStatus },
               ];
             }
-
+            const newIndex = (m.history[m.history.length - 1]?.index || 0) + 1;
             return {
               ...m,
               status: newStatus,
@@ -73,6 +67,7 @@ function App() {
               history: [
                 ...m.history.slice(-19),
                 {
+                  index: newIndex,
                   timestamp: new Date().toISOString(),
                   responseTime: data.responseTime,
                   status: newStatus,
@@ -95,14 +90,19 @@ function App() {
                 { timestamp: new Date().toISOString(), status: "down" },
               ];
             }
-
+            const newIndex = (m.history[m.history.length - 1]?.index || 0) + 1;
             return {
               ...m,
               status: "down",
               usedFallback: false,
               history: [
                 ...m.history.slice(-19),
-                { timestamp: new Date().toISOString(), responseTime: 0, status: "down" },
+                {
+                  index: newIndex,
+                  timestamp: new Date().toISOString(),
+                  responseTime: 0,
+                  status: "down",
+                },
               ],
               statusHistory: m.statusHistory || [],
             };
@@ -113,7 +113,6 @@ function App() {
     }
   };
 
-  // Periodic status update every 10s
   useEffect(() => {
     const interval = setInterval(
       () => monitors.forEach((m) => checkMonitorStatus(m)),
@@ -141,14 +140,34 @@ function App() {
   const deleteMonitor = (id) =>
     setMonitors((prev) => prev.filter((m) => m._id !== id));
 
-  const toggleFullscreen = () => {
-    if (!fullscreen) {
-      document.documentElement.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-    setFullscreen(!fullscreen);
+const toggleFullscreen = () => {
+  if (!fullscreen) {
+    document.documentElement.requestFullscreen();
+    // Scroll first monitor card into view
+    setTimeout(() => {
+      const firstCard = document.querySelector(".monitor-card");
+      if (firstCard) firstCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100); // slight delay to allow fullscreen rendering
+  } else {
+    document.exitFullscreen();
+  }
+  setFullscreen(!fullscreen);
+};
+
+useEffect(() => {
+  const handleFullscreenChange = () => {
+    // Update React state based on actual fullscreen status
+    setFullscreen(!!document.fullscreenElement);
   };
+
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+  return () => {
+    document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  };
+}, []);
+
+
 
   const getAverageResponseTime = (history) => {
     if (!history.length) return 0;
@@ -165,10 +184,7 @@ function App() {
     );
 
   return (
-    <div
-      className="app"
-      style={{ paddingTop: fullscreen ? "70px" : "20px" }} // prevent overlap with button
-    >
+    <div className={`app ${fullscreen ? "fullscreen" : ""}`}>
       {!fullscreen && <h1>Uptime Dashboard</h1>}
 
       {!fullscreen && (
@@ -184,9 +200,10 @@ function App() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
-            <button onClick={addMonitor}>Add Monitor</button>
+            <button className="primary-btn" onClick={addMonitor}>
+              Add Monitor
+            </button>
           </div>
-
           <div className="filter-sort">
             <input
               placeholder="Search by name"
@@ -201,12 +218,14 @@ function App() {
         </div>
       )}
 
-      {/* Fullscreen toggle button always visible at top-right */}
-      <div style={{ position: "fixed", top: 20, right: 20, zIndex: 1000 }}>
-        <button className="add-monitor-button" onClick={toggleFullscreen}>
-          {fullscreen ? "Exit Fullscreen" : "Fullscreen"}
-        </button>
-      </div>
+     {!fullscreen && (
+  <div className="fullscreen-toggle">
+    <button className="primary-btn" onClick={toggleFullscreen}>
+      Fullscreen
+    </button>
+  </div>
+)}
+
 
       <div className="dashboard">
         {displayedMonitors.map((m) => {
@@ -224,7 +243,7 @@ function App() {
               <div className="monitor-header">
                 <h2>{m.name}</h2>
                 {!fullscreen && (
-                  <button onClick={() => deleteMonitor(m._id)}>✕</button>
+                  <button className="delete-btn" onClick={() => deleteMonitor(m._id)}>✕</button>
                 )}
               </div>
               <p>
@@ -240,14 +259,12 @@ function App() {
                 >
                   {m.status}
                 </span>
-                {m.usedFallback && (
-                  <span className="fallback-indicator"> (Advanced Check)</span>
-                )}
+                {m.usedFallback && <span className="fallback-indicator"> (Advanced Check)</span>}
               </p>
               <p>URL: {m.url}</p>
               <p>Average Response: {avgResponse} ms</p>
 
-              <ResponsiveContainer width="100%" height={100}>
+              <ResponsiveContainer width="100%" height={120}>
                 <LineChart data={m.history}>
                   <Line
                     type="monotone"
@@ -265,55 +282,78 @@ function App() {
                     dot={false}
                     data={downData}
                   />
-                  <XAxis dataKey="timestamp" hide />
+                  <XAxis
+                    dataKey="timestamp"
+                    interval={(index) => {
+                      const maxTicks = 6;
+                      const step = Math.ceil(m.history.length / maxTicks);
+                      return index % step !== 0;
+                    }}
+                    tickFormatter={(tick) => {
+                      const date = new Date(tick);
+                      return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
+                    }}
+                  />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                    labelFormatter={(label) => new Date(label).toLocaleString()}
+                    formatter={(value, name, props) => [`${value} ms`, "Response"]}
+                  />
                 </LineChart>
               </ResponsiveContainer>
 
-              {!fullscreen && (
+              {!fullscreen && lastChanges.length > 0 && (
                 <div className="status-history-preview">
-                  <p>
-                    <strong>Recent Changes:</strong>
-                  </p>
-                  {lastChanges.length > 0 ? (
-                    lastChanges.map((c, i) => (
-                      <p key={i}>
-                        {new Date(c.timestamp).toLocaleString()} – {c.status}
-                      </p>
-                    ))
-                  ) : (
-                    <p>No status changes yet</p>
-                  )}
+                  <p><strong>Recent Changes:</strong></p>
+                  {lastChanges.map((c, i) => (
+                    <p key={i}>
+                      {new Date(c.timestamp).toLocaleString()} – {c.status}
+                    </p>
+                  ))}
                 </div>
               )}
 
               {!fullscreen && (
                 <>
                   <button
-                    onClick={() =>
-                      setExpanded(expanded === m._id ? null : m._id)
-                    }
+                    className="primary-btn small-btn"
+                    onClick={() => setExpanded(expanded === m._id ? null : m._id)}
                   >
                     {expanded === m._id ? "Close History" : "Show Full History"}
                   </button>
 
-                  {expanded === m._id && (
-                    <div className="modal">
-                      <div className="modal-content">
-                        <h3>Full History – {m.name}</h3>
-                        {(m.statusHistory || [])
-                          .slice()
-                          .reverse()
-                          .map((c, i) => (
-                            <p key={i}>
-                              {new Date(c.timestamp).toLocaleString()} –{" "}
-                              {c.status}
-                            </p>
-                          ))}
-                      </div>
-                    </div>
-                  )}
+{expanded === m._id && (
+  <div
+    className="modal"
+    onClick={(e) => {
+      // Close modal only if clicking outside modal-content
+      if (e.target.classList.contains("modal")) {
+        setExpanded(null);
+      }
+    }}
+  >
+    <div className="modal-content">
+      <button
+        className="modal-close-btn"
+        onClick={() => setExpanded(null)}
+      >
+        ✕
+      </button>
+      <h3>Full History – {m.name}</h3>
+      {(m.statusHistory || []).length > 0 ? (
+        m.statusHistory.slice().reverse().map((c, i) => (
+          <p key={i}>
+            {new Date(c.timestamp).toLocaleString()} – {c.status}
+          </p>
+        ))
+      ) : (
+        <p>No history available</p>
+      )}
+    </div>
+  </div>
+)}
+
+
                 </>
               )}
             </div>
