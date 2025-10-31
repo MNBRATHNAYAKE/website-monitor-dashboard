@@ -1,365 +1,164 @@
-import React, { useEffect, useState } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import "./App.css";
+import React, { useEffect, useState } from 'react';
+import './App.css';
+import UptimeChart from './UptimeChart';
+import axios from 'axios';
 
 function App() {
   const [monitors, setMonitors] = useState([]);
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [filter, setFilter] = useState("");
-  const [sortBy, setSortBy] = useState("name");
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [email, setEmail] = useState('');
+  const [subscriberCount, setSubscriberCount] = useState(0);
+  const [subMessage, setSubMessage] = useState('');
   const [fullscreen, setFullscreen] = useState(false);
-  const [expanded, setExpanded] = useState(null);
+  const [selectedMonitor, setSelectedMonitor] = useState(null); // ✅ for popup
 
+  // Toggle fullscreen
+  const toggleFullscreen = () => {
+    const elem = document.documentElement;
+    if (!document.fullscreenElement) {
+      elem.requestFullscreen().catch(err => console.error(err.message));
+      document.body.classList.add('fullscreen-active');
+      setFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      document.body.classList.remove('fullscreen-active');
+      setFullscreen(false);
+    }
+  };
+
+  // Fetch monitors
+  const fetchMonitors = async () => {
+    const res = await axios.get('http://localhost:5000/monitors');
+    setMonitors(res.data);
+  };
+
+  // Fetch subscribers
+  const fetchSubscribers = async () => {
+    const res = await axios.get('http://localhost:5000/subscribers');
+    setSubscriberCount(res.data.length);
+  };
+
+  // Add monitor
+  const addMonitor = async () => {
+    if (!name || !url) return;
+    await axios.post('http://localhost:5000/monitors', { name, url });
+    setName('');
+    setUrl('');
+    fetchMonitors();
+  };
+
+  // Delete monitor
+  const deleteMonitor = async (id) => {
+    await axios.delete(`http://localhost:5000/monitors/${id}`);
+    fetchMonitors();
+  };
+
+  // Add subscriber
+  const addSubscriber = async () => {
+    if (!email) return;
+    try {
+      const res = await axios.post('http://localhost:5000/subscribers', { email });
+      setEmail('');
+      setSubscriberCount(res.data.subscribers.length);
+      setSubMessage('Subscribed successfully!');
+    } catch {
+      setSubMessage('Error subscribing. Please try again.');
+    }
+    setTimeout(() => setSubMessage(''), 3000);
+  };
+
+  // Initial fetch
   useEffect(() => {
-    const saved = localStorage.getItem("monitors");
-    if (saved) setMonitors(JSON.parse(saved));
+    fetchMonitors();
+    fetchSubscribers();
+    const interval = setInterval(fetchMonitors, 10000);
+    return () => clearInterval(interval);
   }, []);
 
+  // Handle fullscreen changes
   useEffect(() => {
-    localStorage.setItem("monitors", JSON.stringify(monitors));
-  }, [monitors]);
-
-  const notify = (monitor, status) => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission !== "granted") Notification.requestPermission();
-    if (Notification.permission === "granted") {
-      new Notification(`Monitor ${status.toUpperCase()}: ${monitor.name}`, {
-        body: `The site ${monitor.url} is ${status}.`,
-        icon:
-          status === "down"
-            ? "https://cdn-icons-png.flaticon.com/512/564/564619.png"
-            : "https://cdn-icons-png.flaticon.com/512/190/190411.png",
-      });
-    }
-  };
-
-  const checkMonitorStatus = async (monitor) => {
-    try {
-      const response = await fetch(
-        `http://localhost:5000/check?url=${encodeURIComponent(monitor.url)}`
-      );
-      const data = await response.json();
-
-      setMonitors((prev) =>
-        prev.map((m) => {
-          if (m._id === monitor._id) {
-            const newStatus = data.status;
-            if (m.status !== newStatus) {
-              notify(m, newStatus);
-              m.statusHistory = [
-                ...(m.statusHistory || []),
-                { timestamp: new Date().toISOString(), status: newStatus },
-              ];
-            }
-            const newIndex = (m.history[m.history.length - 1]?.index || 0) + 1;
-            return {
-              ...m,
-              status: newStatus,
-              usedFallback: data.usedFallback,
-              history: [
-                ...m.history.slice(-19),
-                {
-                  index: newIndex,
-                  timestamp: new Date().toISOString(),
-                  responseTime: data.responseTime,
-                  status: newStatus,
-                },
-              ],
-              statusHistory: m.statusHistory || [],
-            };
-          }
-          return m;
-        })
-      );
-    } catch (err) {
-      setMonitors((prev) =>
-        prev.map((m) => {
-          if (m._id === monitor._id) {
-            if (m.status !== "down") {
-              notify(m, "down");
-              m.statusHistory = [
-                ...(m.statusHistory || []),
-                { timestamp: new Date().toISOString(), status: "down" },
-              ];
-            }
-            const newIndex = (m.history[m.history.length - 1]?.index || 0) + 1;
-            return {
-              ...m,
-              status: "down",
-              usedFallback: false,
-              history: [
-                ...m.history.slice(-19),
-                {
-                  index: newIndex,
-                  timestamp: new Date().toISOString(),
-                  responseTime: 0,
-                  status: "down",
-                },
-              ],
-              statusHistory: m.statusHistory || [],
-            };
-          }
-          return m;
-        })
-      );
-    }
-  };
-
-  useEffect(() => {
-    const interval = setInterval(
-      () => monitors.forEach((m) => checkMonitorStatus(m)),
-      10000
-    );
-    return () => clearInterval(interval);
-  }, [monitors]);
-
-  const addMonitor = () => {
-    if (!name || !url) return alert("Enter name and URL");
-    const newMonitor = {
-      _id: Date.now().toString(),
-      name,
-      url,
-      status: "checking",
-      history: [],
-      statusHistory: [],
+    const handleFullscreenChange = () => {
+      setFullscreen(!!document.fullscreenElement);
+      document.body.classList.toggle('fullscreen-active', !!document.fullscreenElement);
     };
-    setMonitors((prev) => [...prev, newMonitor]);
-    setName("");
-    setUrl("");
-    checkMonitorStatus(newMonitor);
-  };
-
-  const deleteMonitor = (id) =>
-    setMonitors((prev) => prev.filter((m) => m._id !== id));
-
-const toggleFullscreen = () => {
-  if (!fullscreen) {
-    document.documentElement.requestFullscreen();
-    // Scroll first monitor card into view
-    setTimeout(() => {
-      const firstCard = document.querySelector(".monitor-card");
-      if (firstCard) firstCard.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 100); // slight delay to allow fullscreen rendering
-  } else {
-    document.exitFullscreen();
-  }
-  setFullscreen(!fullscreen);
-};
-
-useEffect(() => {
-  const handleFullscreenChange = () => {
-    // Update React state based on actual fullscreen status
-    setFullscreen(!!document.fullscreenElement);
-  };
-
-  document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-  return () => {
-    document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  };
-}, []);
-
-
-
-  const getAverageResponseTime = (history) => {
-    if (!history.length) return 0;
-    const sum = history.reduce((acc, h) => acc + h.responseTime, 0);
-    return Math.round(sum / history.length);
-  };
-
-  const displayedMonitors = monitors
-    .filter((m) => m.name.toLowerCase().includes(filter.toLowerCase()))
-    .sort((a, b) =>
-      sortBy === "name"
-        ? a.name.localeCompare(b.name)
-        : a.status.localeCompare(b.status)
-    );
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   return (
-    <div className={`app ${fullscreen ? "fullscreen" : ""}`}>
-      {!fullscreen && <h1>Uptime Dashboard</h1>}
-
+    <div className="App">
+      {/* Only show these when not in fullscreen */}
       {!fullscreen && (
-        <div className="controls">
-          <div className="add-monitor">
-            <input
-              placeholder="Monitor Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              placeholder="Monitor URL"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-            <button className="primary-btn" onClick={addMonitor}>
-              Add Monitor
+        <>
+          <h1>Website Monitoring Dashboard</h1>
+          <div className="fullscreen-toggle">
+            <button onClick={toggleFullscreen}>
+              {fullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
             </button>
           </div>
-          <div className="filter-sort">
-            <input
-              placeholder="Search by name"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="name">Sort by Name</option>
-              <option value="status">Sort by Status</option>
-            </select>
+          <div className="add-monitor">
+            <input placeholder="Monitor Name" value={name} onChange={e => setName(e.target.value)} />
+            <input placeholder="Monitor URL" value={url} onChange={e => setUrl(e.target.value)} />
+            <button onClick={addMonitor}>Add Monitor</button>
+          </div>
+          <div className="subscriber">
+            <input placeholder="Your email" value={email} onChange={e => setEmail(e.target.value)} />
+            <button onClick={addSubscriber}>Subscribe for alerts</button>
+          </div>
+          {subMessage && <p className="sub-message">{subMessage}</p>}
+          <p style={{ textAlign: 'center', marginTop: '8px', color: '#ccc' }}>
+            Total Subscribers: {subscriberCount}
+          </p>
+        </>
+      )}
+
+      {/* Monitor cards */}
+      <div className={`monitors ${fullscreen ? 'fullscreen-active' : ''}`}>
+        {monitors.map(m => (
+          <div
+            key={m.id}
+            className={`monitor ${m.status}`}
+            onClick={() => setSelectedMonitor(m)} // ✅ Click opens popup
+          >
+            <div className="monitor-content">
+              <div className="monitor-info">
+                <h3>{m.name}</h3>
+                <p>{m.url}</p>
+                <p>Status: <span className={`status-${m.status}`}>{m.status}</span></p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation(); // prevent popup
+                    deleteMonitor(m.id);
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+              <div className="monitor-chart">
+                <UptimeChart history={m.history} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ✅ Popup for detailed monitor view */}
+      {selectedMonitor && (
+        <div className="monitor-popup-overlay" onClick={() => setSelectedMonitor(null)}>
+          <div className="monitor-popup" onClick={e => e.stopPropagation()}>
+            <button className="close-popup" onClick={() => setSelectedMonitor(null)}>✖</button>
+            <h2>{selectedMonitor.name}</h2>
+            <p><strong>URL:</strong> {selectedMonitor.url}</p>
+            <p><strong>Status:</strong> <span className={`status-${selectedMonitor.status}`}>{selectedMonitor.status}</span></p>
+            <p><strong>Uptime:</strong> {selectedMonitor.uptime || 'Calculating...'}</p>
+            <p><strong>Last Checked:</strong> {selectedMonitor.lastChecked ? new Date(selectedMonitor.lastChecked).toLocaleString() : 'N/A'}</p>
+            <div className="popup-chart">
+              <UptimeChart history={selectedMonitor.history} />
+            </div>
           </div>
         </div>
       )}
-
-     {!fullscreen && (
-  <div className="fullscreen-toggle">
-    <button className="primary-btn" onClick={toggleFullscreen}>
-      Fullscreen
-    </button>
-  </div>
-)}
-
-
-      <div className="dashboard">
-        {displayedMonitors.map((m) => {
-          const avgResponse = getAverageResponseTime(m.history);
-          const upData = m.history.map((h) =>
-            h.status === "up" ? h : { ...h, responseTime: null }
-          );
-          const downData = m.history.map((h) =>
-            h.status === "down" ? h : { ...h, responseTime: null }
-          );
-          const lastChanges = (m.statusHistory || []).slice(-3).reverse();
-
-          return (
-            <div key={m._id} className="monitor-card">
-              <div className="monitor-header">
-                <h2>{m.name}</h2>
-                {!fullscreen && (
-                  <button className="delete-btn" onClick={() => deleteMonitor(m._id)}>✕</button>
-                )}
-              </div>
-              <p>
-                Status:{" "}
-                <span
-                  className={
-                    m.status === "up"
-                      ? "status-up"
-                      : m.status === "down"
-                      ? "status-down"
-                      : "status-checking"
-                  }
-                >
-                  {m.status}
-                </span>
-                {m.usedFallback && <span className="fallback-indicator"> (Advanced Check)</span>}
-              </p>
-              <p>URL: {m.url}</p>
-              <p>Average Response: {avgResponse} ms</p>
-
-              <ResponsiveContainer width="100%" height={120}>
-                <LineChart data={m.history}>
-                  <Line
-                    type="monotone"
-                    dataKey="responseTime"
-                    stroke="#4caf50"
-                    strokeWidth={2}
-                    dot={false}
-                    data={upData}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="responseTime"
-                    stroke="#f44336"
-                    strokeWidth={2}
-                    dot={false}
-                    data={downData}
-                  />
-                  <XAxis
-                    dataKey="timestamp"
-                    interval={(index) => {
-                      const maxTicks = 6;
-                      const step = Math.ceil(m.history.length / maxTicks);
-                      return index % step !== 0;
-                    }}
-                    tickFormatter={(tick) => {
-                      const date = new Date(tick);
-                      return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`;
-                    }}
-                  />
-                  <YAxis />
-                  <Tooltip
-                    labelFormatter={(label) => new Date(label).toLocaleString()}
-                    formatter={(value, name, props) => [`${value} ms`, "Response"]}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-
-              {!fullscreen && lastChanges.length > 0 && (
-                <div className="status-history-preview">
-                  <p><strong>Recent Changes:</strong></p>
-                  {lastChanges.map((c, i) => (
-                    <p key={i}>
-                      {new Date(c.timestamp).toLocaleString()} – {c.status}
-                    </p>
-                  ))}
-                </div>
-              )}
-
-              {!fullscreen && (
-                <>
-                  <button
-                    className="primary-btn small-btn"
-                    onClick={() => setExpanded(expanded === m._id ? null : m._id)}
-                  >
-                    {expanded === m._id ? "Close History" : "Show Full History"}
-                  </button>
-
-{expanded === m._id && (
-  <div
-    className="modal"
-    onClick={(e) => {
-      // Close modal only if clicking outside modal-content
-      if (e.target.classList.contains("modal")) {
-        setExpanded(null);
-      }
-    }}
-  >
-    <div className="modal-content">
-      <button
-        className="modal-close-btn"
-        onClick={() => setExpanded(null)}
-      >
-        ✕
-      </button>
-      <h3>Full History – {m.name}</h3>
-      {(m.statusHistory || []).length > 0 ? (
-        m.statusHistory.slice().reverse().map((c, i) => (
-          <p key={i}>
-            {new Date(c.timestamp).toLocaleString()} – {c.status}
-          </p>
-        ))
-      ) : (
-        <p>No history available</p>
-      )}
-    </div>
-  </div>
-)}
-
-
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
