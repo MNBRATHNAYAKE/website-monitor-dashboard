@@ -198,5 +198,5 @@ app.post('/subscribers', (req, res) => {
 // Get all subscribers
 app.get('/subscribers', (req, res) => res.json(subscribers));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
