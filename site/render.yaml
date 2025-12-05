@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: backend
+    env: node
+    root: site/backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+
+  - type: web
+    name: frontend
+    env: static
+    root: site/frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run serve
+    plan: free
