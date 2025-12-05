@@ -1,4 +1,4 @@
-import monitors from '../../data/monitor.js';
+import monitors from '../data/monitors.js'; // path to your JSON array
 import { randomUUID } from 'crypto';
 
 export default function handler(req, res) {
