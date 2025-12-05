@@ -29,7 +29,7 @@ function App() {
 
   const fetchMonitors = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/monitors");
+      const res = await axios.get("https://website-monitor-dashboard.vercel.app/monitors");
       setMonitors(res.data);
     } catch (err) {
       console.error("Monitor fetch error:", err.message);
@@ -38,7 +38,7 @@ function App() {
 
   const fetchSubscribers = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/subscribers");
+      const res = await axios.get("https://website-monitor-dashboard.vercel.app/subscribers");
       setSubscriberCount(res.data.length);
     } catch (err) {
       console.error("Subscriber fetch error:", err.message);
@@ -47,21 +47,21 @@ function App() {
 
   const addMonitor = async () => {
     if (!name || !url) return;
-    await axios.post("http://localhost:5000/monitors", { name, url });
+    await axios.post("https://website-monitor-dashboard.vercel.app/monitors", { name, url });
     setName("");
     setUrl("");
     fetchMonitors();
   };
 
   const deleteMonitor = async (id) => {
-    await axios.delete(`http://localhost:5000/monitors/${id}`);
+    await axios.delete(`https://website-monitor-dashboard.vercel.app/monitors/${id}`);
     fetchMonitors();
   };
 
   const addSubscriber = async () => {
     if (!email) return;
     try {
-      const res = await axios.post("http://localhost:5000/subscribers", { email });
+      const res = await axios.post("https://website-monitor-dashboard.vercel.app/subscribers", { email });
       setEmail("");
       setSubscriberCount(res.data.subscribers.length);
       setSubMessage("Subscribed successfully!");
