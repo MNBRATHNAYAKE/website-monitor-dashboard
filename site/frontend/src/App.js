@@ -44,8 +44,7 @@ function App() {
     } catch (err) {
       console.error("Subscriber fetch error:", err.message);
     }
-    axios.post("https://your-backend.vercel.app/api/subscribers", { email });
-
+    
   };
 
   const addSubscriber = async () => {
