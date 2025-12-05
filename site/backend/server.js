@@ -28,6 +28,16 @@ if (fs.existsSync(SUBSCRIBERS_FILE)) {
   subscribers = JSON.parse(fs.readFileSync(SUBSCRIBERS_FILE));
 }
 
+
+const smtpHost = process.env.SMTP_HOST;
+const smtpPort = process.env.SMTP_PORT;
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS;
+const fromEmail = process.env.FROM_EMAIL;
+const frontendURL = process.env.FRONTEND_URL;
+const port = process.env.PORT || 5000;
+
+
 // Nodemailer setup
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
