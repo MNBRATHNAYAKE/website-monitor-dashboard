@@ -12,7 +12,9 @@ function App() {
   const [fullscreen, setFullscreen] = useState(false);
   const [selectedMonitor, setSelectedMonitor] = useState(null);
 
-  const BACKEND_URL = "https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app"; // Vercel static files URL
+  // ✅ FIX 1: Unify the URL. Use your actual Vercel Backend URL here.
+  // Remove the trailing slash '/' if it exists.
+  const BACKEND_URL = "https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app"; 
 
   const toggleFullscreen = () => {
     const elem = document.documentElement;
@@ -43,6 +45,23 @@ function App() {
     } catch (err) {
       console.error("Subscriber fetch error:", err.message);
     }
+    // ❌ REMOVED: The accidental axios.post here was trying to subscribe an empty email on every page load!
+  };
+
+  const addSubscriber = async () => {
+    if (!email) return;
+    try {
+      // ✅ FIX 2: Use the variable BACKEND_URL instead of the placeholder "your-backend.vercel.app"
+      await axios.post(`${BACKEND_URL}/subscribers`, { email });
+      setEmail("");
+      setSubMessage("Subscribed successfully! ✅");
+      // Refresh count after adding
+      fetchSubscribers(); 
+    } catch (err) {
+      console.error("Subscription error:", err.message);
+      setSubMessage("Error subscribing. Please try again. ❌");
+    }
+    setTimeout(() => setSubMessage(""), 4000);
   };
 
   useEffect(() => {
@@ -50,7 +69,7 @@ function App() {
     fetchSubscribers();
     const interval = setInterval(fetchMonitors, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -71,13 +90,22 @@ function App() {
               {fullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             </button>
           </div>
+
+          <div className="subscriber">
+            <input
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button onClick={addSubscriber}>Subscribe for alerts</button>
+          </div>
+          {subMessage && <p className="sub-message">{subMessage}</p>}
           <p style={{ textAlign: "center", marginTop: "8px", color: "#ccc" }}>
             Total Subscribers: {subscriberCount}
           </p>
         </>
       )}
 
-      {/* Monitors Section */}
       <div className={`monitors ${fullscreen ? "fullscreen-active" : ""}`}>
         {monitors.map((m, index) => (
           <div key={index} className={`monitor ${m.status}`}>
@@ -88,7 +116,6 @@ function App() {
                 <p>
                   Status: <span className={`status-${m.status}`}>{m.status}</span>
                 </p>
-                {/* 🔍 View Detailed Button */}
                 <button 
                   style={{
                     background: "#4caf50",
@@ -109,7 +136,6 @@ function App() {
         ))}
       </div>
 
-      {/* 🪟 Popup with details + chart */}
       {selectedMonitor && (
         <div className="monitor-popup-overlay" onClick={() => setSelectedMonitor(null)}>
           <div className="monitor-popup" onClick={(e) => e.stopPropagation()}>

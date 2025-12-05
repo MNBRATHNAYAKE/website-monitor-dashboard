@@ -8,7 +8,9 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://monitor1ng.netlify.app/',
+  origin: ["https://your-netlify-site-name.netlify.app", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
 }));
 app.use(express.json());
 
