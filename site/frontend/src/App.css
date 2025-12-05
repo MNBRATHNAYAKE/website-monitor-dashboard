@@ -94,6 +94,16 @@ h1 {
   box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
+.monitor.up {
+  border-left: 5px solid #4caf50;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.monitor.down {
+  border-left: 5px solid #f44336;
+  box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
+}
+
 .monitor h3 {
   margin: 0;
   font-size: 1.3em;
@@ -107,15 +117,7 @@ h1 {
   word-wrap: break-word;
 }
 
-.monitor.up {
-  border-left: 5px solid #4caf50;
-}
-
-.monitor.down {
-  border-left: 5px solid #f44336;
-}
-
-/* Delete button inside monitor card */
+/* Delete button */
 .monitor button {
   margin-top: 10px;
   align-self: flex-end;
@@ -134,19 +136,35 @@ h1 {
 }
 
 /* ========================
-   Uptime Chart Styling
+   Uptime Chart Styling (Enhanced)
 ======================== */
 .recharts-wrapper {
-  margin-top:auto;
-  background-color: #23264a !important;
-  border-radius: 8px;
-  padding: 8px;
-  min-height: 100px;
+  margin-top: auto;
+  background: radial-gradient(circle at top left, #23264a, #1e2038);
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 120px;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Chart line and dot hover effect */
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+
+.recharts-tooltip-wrapper {
+  background-color: rgba(30, 30, 50, 0.9) !important;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
 .recharts-line {
-  transition: stroke 0.2s;
+  stroke-width: 2.5px !important;
+  stroke-linecap: round;
+  transition: all 0.2s ease;
+}
+
+.recharts-line:hover {
+  stroke-width: 3px !important;
 }
 
 /* ========================
@@ -186,7 +204,6 @@ h1 {
   background-color: #45a049;
 }
 
-/* Subscriber message */
 .sub-message {
   text-align: center;
   margin-top: 12px;
@@ -195,7 +212,6 @@ h1 {
   font-weight: 500;
 }
 
-/* Subscriber count */
 .sub-count {
   text-align: center;
   margin-top: 5px;
@@ -222,118 +238,19 @@ h1 {
 }
 
 /* ========================
-   Responsive Tweaks
+   Fullscreen Mode
 ======================== */
-@media (max-width: 600px) {
-  .add-monitor input, .subscriber input {
-    width: 100%;
-  }
-
-  .monitors {
-    grid-template-columns: 1fr;
-  }
-}
-/* ========================
-   Monitor Card Styling
-======================== */
-.monitor {
-  background-color: #2b2f4c;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  min-height: 220px;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Horizontal layout inside card */
-.monitor-content {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.monitor-info {
-  flex: 1 1 200px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.monitor-chart {
-  flex: 2 1 250px;
-  min-width: 250px;
-  height: 120px;
-}
-
-/* Monitor hover effect */
-.monitor:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
-
-/* Delete button styling */
-.monitor button {
-  align-self: flex-start;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background-color: #f44336;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s ease;
-}
-
-.monitor button:hover {
-  background-color: #da2c2c;
-}
-
-/* Status text */
-.status-up {
-  color: #4caf50;
-  font-weight: bold;
-}
-
-.status-down {
-  color: #f44336;
-  font-weight: bold;
-}
-
-.status-checking {
-  color: #ff9800;
-  font-weight: bold;
-}
-
-/* Responsive tweaks */
-@media (max-width: 700px) {
-  .monitor-content {
-    flex-direction: column;
-  }
-
-  .monitor-chart {
-    width: 100%;
-    min-width: unset;
-    height: 120px;
-  }
-}
-/* Fullscreen mode */
 .fullscreen .monitors.fullscreen-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
-  height: 100vh; /* fill screen */
+  height: 100vh;
   padding: 10px;
-  overflow: hidden; /* no scrolling */
+  overflow: hidden;
 }
 
 .fullscreen .monitor {
-  height: calc(100vh / 2 - 30px); /* adjust dynamically for 2 rows */
+  height: calc(100vh / 2 - 30px);
 }
 
 .fullscreen .monitor-content {
@@ -358,29 +275,45 @@ h1 {
 .fullscreen-toggle button:hover {
   background-color: #45a049;
 }
+
+/* ========================
+   Popup (Glassmorphism)
+======================== */
 .monitor-popup-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(10, 10, 10, 0.75);
+  background: rgba(15, 15, 30, 0.85);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
+  animation: fadeIn 0.3s ease;
 }
 
 .monitor-popup {
-  background: #1e1e1e;
+  background: rgba(30, 30, 50, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
   padding: 30px;
   border-radius: 16px;
-  max-width: 600px;
+  max-width: 720px;
   width: 90%;
   box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
   position: relative;
-  animation: fadeIn 0.3s ease;
+  animation: popupSlide 0.4s ease;
+}
+
+.popup-chart {
+  margin-top: 25px;
+  background: #20233d;
+  border-radius: 12px;
+  padding: 15px;
+  height: 320px;
+  box-shadow: inset 0 0 6px rgba(0, 188, 212, 0.3);
 }
 
 .close-popup {
@@ -392,13 +325,118 @@ h1 {
   color: #fff;
   font-size: 20px;
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
-.popup-chart {
-  margin-top: 20px;
-}
+
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popupSlide {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chart-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.range-selector {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.range-selector button {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.range-selector button.active {
+  background: #10b981;
+  color: white;
+}
+
+.range-selector button:hover {
+  background: #d1d5db;
+}
+.monitor-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.monitor-popup {
+  background: #1e1e2f;
+  padding: 25px;
+  border-radius: 12px;
+  width: 85%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  color: #fff;
+  position: relative;
+  animation: popupFadeIn 0.3s ease;
+}
+
+.popup-details p {
+  margin: 6px 0;
+}
+
+.popup-chart-wrapper {
+  margin-top: 20px;
+  width: 100%;
+  height: 400px;
+  background-color: #161624;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-chart-wrapper .apexcharts-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.close-popup {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.close-popup:hover {
+  color: #ff5e5e;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }

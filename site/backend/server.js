@@ -7,7 +7,9 @@ const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+}));
 app.use(express.json());
 
 // JSON file paths
@@ -67,29 +69,63 @@ async function sendEmail(monitor, status) {
   }
 }
 
-// Check monitor status
+// Helper functions to save data
+function saveMonitors() {
+  fs.writeFileSync(MONITORS_FILE, JSON.stringify(monitors, null, 2));
+}
+
+function saveSubscribers() {
+  fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
+}
+
+// Check monitor status with 5-minute confirmation delay
 async function checkMonitor(monitor) {
   try {
     await axios.get(monitor.url, { timeout: 10000 });
 
-    // Site is up
+    // Site is UP
     if (monitor.status !== 'up') {
       monitor.status = 'up';
       monitor.history.push({ status: 'up', timestamp: new Date() });
       monitor.downSince = null;
+      monitor.alertSent = false;
       await sendEmail(monitor, 'up');
       saveMonitors();
     }
   } catch {
-    // Site is down
-    if (!monitor.downSince) monitor.downSince = new Date();
+    // Site is DOWN
+    if (!monitor.downSince) {
+      // First time detected as down
+      monitor.downSince = new Date();
+      console.log(`⚠️ ${monitor.name} might be down — starting 5-minute timer...`);
+    }
 
     const downTimeMinutes = (new Date() - new Date(monitor.downSince)) / 60000;
 
-    if (downTimeMinutes >= 5 && monitor.status !== 'down') {
-      // Down for 5 minutes → send alert
-      monitor.status = 'down';
+    // Push current DOWN status for chart (if last history point is not down)
+    const lastHistory = monitor.history[monitor.history.length - 1];
+    if (!lastHistory || lastHistory.status !== 'down') {
       monitor.history.push({ status: 'down', timestamp: new Date() });
+    }
+
+    // After 5 minutes, confirm it’s still down before sending alert
+    if (downTimeMinutes >= 5 && monitor.status !== 'down' && !monitor.alertSent) {
+      try {
+        const confirm = await axios.get(monitor.url, { timeout: 10000 });
+        if (confirm.status >= 200 && confirm.status < 400) {
+          console.log(`✅ ${monitor.name} recovered before 5 minutes.`);
+          monitor.downSince = null;
+          monitor.status = 'up';
+          monitor.alertSent = false;
+          saveMonitors();
+          return;
+        }
+      } catch {
+        // Still down after 5 minutes — send alert
+      }
+
+      monitor.status = 'down';
+      monitor.alertSent = true;
       await sendEmail(monitor, 'down');
       saveMonitors();
     }
@@ -107,26 +143,36 @@ setInterval(async () => {
   }
 }, 60000);
 
-// Helper functions to save data
-function saveMonitors() {
-  fs.writeFileSync(MONITORS_FILE, JSON.stringify(monitors, null, 2));
-}
-
-function saveSubscribers() {
-  fs.writeFileSync(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2));
-}
-
 // ========================
 // API Endpoints
 // ========================
 
-// Get all monitors
-app.get('/monitors', (req, res) => res.json(monitors));
+// Get all monitors (include current status in chart)
+app.get('/monitors', (req, res) => {
+  const monitorsWithCurrent = monitors.map(m => {
+    // Clone history and append current status as last point
+    const history = [...m.history];
+    const now = new Date();
+    if (history.length === 0 || new Date(history[history.length - 1].timestamp).getTime() < now.getTime()) {
+      history.push({ status: m.status, timestamp: now });
+    }
+    return { ...m, history };
+  });
+  res.json(monitorsWithCurrent);
+});
 
 // Add a new monitor
 app.post('/monitors', (req, res) => {
   const { name, url } = req.body;
-  const newMonitor = { id: uuidv4(), name, url, status: 'unknown', history: [], downSince: null };
+  const newMonitor = {
+    id: uuidv4(),
+    name,
+    url,
+    status: 'unknown',
+    history: [],
+    downSince: null,
+    alertSent: false,
+  };
   monitors.push(newMonitor);
   saveMonitors();
   res.json(newMonitor);
@@ -153,4 +199,4 @@ app.post('/subscribers', (req, res) => {
 app.get('/subscribers', (req, res) => res.json(subscribers));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
