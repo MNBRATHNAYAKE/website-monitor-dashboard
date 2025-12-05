@@ -1,5 +1,5 @@
 // App.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import "./App.css";
 import UptimeChart from "./UptimeChart";
 import axios from "axios";
@@ -7,149 +7,134 @@ import axios from "axios";
 function App() {
   const [monitors, setMonitors] = useState([]);
   const [email, setEmail] = useState("");
-  const [subscriberCount, setSubscriberCount] = useState(0);
+  const [subCount, setSubCount] = useState(0);
   const [subMessage, setSubMessage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const [selectedMonitor, setSelectedMonitor] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const BACKEND_URL = "https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app"; // static JSON URL
-  const SUBSCRIBE_API = "https://your-backend.vercel.app/subscribers"; // POST endpoint for subscriptions
+  // Use Environment Variable or fallback to localhost for dev
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
   const toggleFullscreen = () => {
-    const elem = document.documentElement;
     if (!document.fullscreenElement) {
-      elem.requestFullscreen().catch((err) => console.error(err.message));
-      document.body.classList.add("fullscreen-active");
-      setFullscreen(true);
+      document.documentElement.requestFullscreen();
     } else {
       document.exitFullscreen();
-      document.body.classList.remove("fullscreen-active");
-      setFullscreen(false);
     }
   };
 
-  const fetchMonitors = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/monitors.json`);
-      setMonitors(res.data);
+      const [monRes, subRes] = await Promise.all([
+        axios.get(`${API_URL}/monitors`),
+        axios.get(`${API_URL}/subscribers`)
+      ]);
+      setMonitors(monRes.data);
+      setSubCount(subRes.data.count);
+      setLastUpdated(new Date());
     } catch (err) {
-      console.error("Monitor fetch error:", err.message);
+      console.error("Fetch error:", err);
     }
-  };
-
-  const fetchSubscribers = async () => {
-    try {
-      const res = await axios.get(`${BACKEND_URL}/subscribers.json`);
-      setSubscriberCount(res.data.length);
-    } catch (err) {
-      console.error("Subscriber fetch error:", err.message);
-    }
-    
-  };
+  }, [API_URL]);
 
   const addSubscriber = async () => {
     if (!email) return;
     try {
-      // Send email subscription request to backend API
-      await axios.post(SUBSCRIBE_API, { email });
+      await axios.post(`${API_URL}/subscribers`, { email });
       setEmail("");
-      setSubMessage("Subscribed successfully! ✅");
+      setSubMessage("✅ Subscribed successfully!");
+      fetchData();
     } catch (err) {
-      console.error("Subscription error:", err.message);
-      setSubMessage("Error subscribing. Please try again. ❌");
+      setSubMessage("❌ Error subscribing.");
     }
     setTimeout(() => setSubMessage(""), 4000);
   };
 
   useEffect(() => {
-    fetchMonitors();
-    fetchSubscribers();
-    const interval = setInterval(fetchMonitors, 10000);
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // Poll every 10s
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setFullscreen(!!document.fullscreenElement);
-      document.body.classList.toggle("fullscreen-active", !!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    const handleFs = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handleFs);
+    return () => document.removeEventListener("fullscreenchange", handleFs);
   }, []);
 
   return (
-    <div className="App">
+    <div className={`App ${fullscreen ? "fs-mode" : ""}`}>
+      
+      {/* Header Section */}
       {!fullscreen && (
-        <>
-          <h1>Website Monitoring Dashboard</h1>
-          <div className="fullscreen-toggle">
-            <button onClick={toggleFullscreen}>
-              {fullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        <header>
+          <div className="header-top">
+            <h1>System Status</h1>
+            <div className="live-indicator">
+               <span className="dot"></span>
+               Live {lastUpdated && `(${lastUpdated.toLocaleTimeString()})`}
+            </div>
+          </div>
+          
+          <div className="controls">
+            <button className="fs-btn" onClick={toggleFullscreen}>
+              ⛶ Fullscreen
             </button>
           </div>
 
-          <div className="subscriber">
-            <input
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button onClick={addSubscriber}>Subscribe for alerts</button>
+          <div className="subscriber-section">
+            <div className="sub-input-group">
+              <input
+                type="email"
+                placeholder="alert@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <button onClick={addSubscriber}>Get Alerts</button>
+            </div>
+            {subMessage && <span className="sub-msg">{subMessage}</span>}
+            <small className="sub-count">{subCount} active subscribers</small>
           </div>
-          {subMessage && <p className="sub-message">{subMessage}</p>}
-          <p style={{ textAlign: "center", marginTop: "8px", color: "#ccc" }}>
-            Total Subscribers: {subscriberCount}
-          </p>
-        </>
+        </header>
       )}
 
-      <div className={`monitors ${fullscreen ? "fullscreen-active" : ""}`}>
-        {monitors.map((m, index) => (
-          <div key={index} className={`monitor ${m.status}`}>
-            <div className="monitor-content">
-              <div className="monitor-info">
-                <h3>{m.name}</h3>
-                <p>{m.url}</p>
-                <p>
-                  Status: <span className={`status-${m.status}`}>{m.status}</span>
-                </p>
-                <button 
-                  style={{
-                    background: "#4caf50",
-                    border: "none",
-                    borderRadius: "6px",
-                    color: "#fff",
-                    padding: "6px 12px",
-                    marginTop: "6px",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setSelectedMonitor(m)}
-                >
-                  More details
-                </button>
-              </div>
+      {/* Grid */}
+      <div className="monitors-grid">
+        {monitors.map((m) => (
+          <div key={m._id} className={`monitor-card ${m.status}`}>
+            <div className="status-badge">{m.status}</div>
+            <div className="monitor-details">
+              <h3>{m.name}</h3>
+              <a href={m.url} target="_blank" rel="noreferrer" className="monitor-link">{m.url}</a>
             </div>
+            <div className="mini-chart">
+               {/* Pass false to detailed to show simplified view */}
+               <UptimeChart history={m.history} /> 
+            </div>
+            <button className="details-btn" onClick={() => setSelectedMonitor(m)}>
+              Analytics &rarr;
+            </button>
           </div>
         ))}
       </div>
 
+      {/* Popup Modal */}
       {selectedMonitor && (
-        <div className="monitor-popup-overlay" onClick={() => setSelectedMonitor(null)}>
-          <div className="monitor-popup" onClick={(e) => e.stopPropagation()}>
-            <button className="close-popup" onClick={() => setSelectedMonitor(null)}>
-              ✖
-            </button>
-            <h2>{selectedMonitor.name}</h2>
-            <p>
-              <strong>URL:</strong> {selectedMonitor.url}
-            </p>
-            <p>
-              <strong>Status:</strong>{" "}
-              <span className={`status-${selectedMonitor.status}`}>
-                {selectedMonitor.status}
+        <div className="modal-overlay" onClick={() => setSelectedMonitor(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setSelectedMonitor(null)}>×</button>
+            
+            <div className="modal-header">
+              <h2>{selectedMonitor.name}</h2>
+              <span className={`status-pill ${selectedMonitor.status}`}>
+                {selectedMonitor.status.toUpperCase()}
               </span>
-            </p>
-            <div className="popup-chart">
+            </div>
+            
+            <p className="modal-url">{selectedMonitor.url}</p>
+            
+            <div className="chart-wrapper">
               <UptimeChart history={selectedMonitor.history} detailed />
             </div>
           </div>
