@@ -6,13 +6,13 @@ import axios from "axios";
 
 function App() {
   const [monitors, setMonitors] = useState([]);
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
   const [email, setEmail] = useState("");
   const [subscriberCount, setSubscriberCount] = useState(0);
   const [subMessage, setSubMessage] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const [selectedMonitor, setSelectedMonitor] = useState(null);
+
+  const BACKEND_URL = "https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app"; // Vercel static files URL
 
   const toggleFullscreen = () => {
     const elem = document.documentElement;
@@ -29,7 +29,7 @@ function App() {
 
   const fetchMonitors = async () => {
     try {
-      const res = await axios.get("https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app/monitors");
+      const res = await axios.get(`${BACKEND_URL}/monitors.json`);
       setMonitors(res.data);
     } catch (err) {
       console.error("Monitor fetch error:", err.message);
@@ -38,37 +38,11 @@ function App() {
 
   const fetchSubscribers = async () => {
     try {
-      const res = await axios.get("https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app/subscribers");
+      const res = await axios.get(`${BACKEND_URL}/subscribers.json`);
       setSubscriberCount(res.data.length);
     } catch (err) {
       console.error("Subscriber fetch error:", err.message);
     }
-  };
-
-  const addMonitor = async () => {
-    if (!name || !url) return;
-    await axios.post("https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app/monitors", { name, url });
-    setName("");
-    setUrl("");
-    fetchMonitors();
-  };
-
-  const deleteMonitor = async (id) => {
-    await axios.delete(`https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app/monitors/${id}`);
-    fetchMonitors();
-  };
-
-  const addSubscriber = async () => {
-    if (!email) return;
-    try {
-      const res = await axios.post("https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app/subscribers", { email });
-      setEmail("");
-      setSubscriberCount(res.data.subscribers.length);
-      setSubMessage("Subscribed successfully!");
-    } catch {
-      setSubMessage("Error subscribing. Please try again.");
-    }
-    setTimeout(() => setSubMessage(""), 3000);
   };
 
   useEffect(() => {
@@ -97,28 +71,6 @@ function App() {
               {fullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             </button>
           </div>
-          <div className="add-monitor">
-            <input
-              placeholder="Monitor Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              placeholder="Monitor URL"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-            <button onClick={addMonitor}>Add Monitor</button>
-          </div>
-          <div className="subscriber">
-            <input
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <button onClick={addSubscriber}>Subscribe for alerts</button>
-          </div>
-          {subMessage && <p className="sub-message">{subMessage}</p>}
           <p style={{ textAlign: "center", marginTop: "8px", color: "#ccc" }}>
             Total Subscribers: {subscriberCount}
           </p>
@@ -127,8 +79,8 @@ function App() {
 
       {/* Monitors Section */}
       <div className={`monitors ${fullscreen ? "fullscreen-active" : ""}`}>
-        {monitors.map((m) => (
-          <div key={m.id} className={`monitor ${m.status}`}>
+        {monitors.map((m, index) => (
+          <div key={index} className={`monitor ${m.status}`}>
             <div className="monitor-content">
               <div className="monitor-info">
                 <h3>{m.name}</h3>
@@ -136,15 +88,6 @@ function App() {
                 <p>
                   Status: <span className={`status-${m.status}`}>{m.status}</span>
                 </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteMonitor(m.id);
-                  }}
-                >
-                 ✖
-                </button>
-
                 {/* 🔍 View Detailed Button */}
                 <button 
                   style={{
@@ -156,10 +99,7 @@ function App() {
                     marginTop: "6px",
                     cursor: "pointer",
                   }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedMonitor(m);
-                  }}
+                  onClick={() => setSelectedMonitor(m)}
                 >
                   More details
                 </button>
@@ -186,16 +126,6 @@ function App() {
                 {selectedMonitor.status}
               </span>
             </p>
-            <p>
-              <strong>Uptime:</strong> {selectedMonitor.uptime || "Calculating..."}
-            </p>
-            <p>
-              <strong>Last Checked:</strong>{" "}
-              {selectedMonitor.lastChecked
-                ? new Date(selectedMonitor.lastChecked).toLocaleString()
-                : "N/A"}
-            </p>
-
             <div className="popup-chart">
               <UptimeChart history={selectedMonitor.history} detailed />
             </div>
