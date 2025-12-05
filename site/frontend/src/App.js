@@ -29,7 +29,7 @@ function App() {
 
   const fetchMonitors = async () => {
     try {
-      const res = await axios.get("https://website-monitor-dashboard.vercel.app/monitors");
+      const res = await axios.get("https://website-monitor-dashboard-git-main-nuwans-projects-0d23b1ca.vercel.app/monitors");
       setMonitors(res.data);
     } catch (err) {
       console.error("Monitor fetch error:", err.message);
@@ -38,7 +38,7 @@ function App() {
 
   const fetchSubscribers = async () => {
     try {
-      const res = await axios.get("https://website-monitor-dashboard.vercel.app/subscribers");
+      const res = await axios.get("https://website-monitor-dashboard-git-main-nuwans-projects-0d23b1ca.vercel.app/subscribers");
       setSubscriberCount(res.data.length);
     } catch (err) {
       console.error("Subscriber fetch error:", err.message);
@@ -47,21 +47,21 @@ function App() {
 
   const addMonitor = async () => {
     if (!name || !url) return;
-    await axios.post("https://website-monitor-dashboard.vercel.app/monitors", { name, url });
+    await axios.post("https://website-monitor-dashboard-git-main-nuwans-projects-0d23b1ca.vercel.app/monitors", { name, url });
     setName("");
     setUrl("");
     fetchMonitors();
   };
 
   const deleteMonitor = async (id) => {
-    await axios.delete(`https://website-monitor-dashboard.vercel.app/monitors/${id}`);
+    await axios.delete(`https://website-monitor-dashboard-git-main-nuwans-projects-0d23b1ca.vercel.app/monitors/${id}`);
     fetchMonitors();
   };
 
   const addSubscriber = async () => {
     if (!email) return;
     try {
-      const res = await axios.post("https://website-monitor-dashboard.vercel.app/subscribers", { email });
+      const res = await axios.post("https://website-monitor-dashboard-git-main-nuwans-projects-0d23b1ca.vercel.app/subscribers", { email });
       setEmail("");
       setSubscriberCount(res.data.subscribers.length);
       setSubMessage("Subscribed successfully!");
