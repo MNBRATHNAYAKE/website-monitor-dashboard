@@ -12,9 +12,8 @@ function App() {
   const [fullscreen, setFullscreen] = useState(false);
   const [selectedMonitor, setSelectedMonitor] = useState(null);
 
-  // ✅ FIX 1: Unify the URL. Use your actual Vercel Backend URL here.
-  // Remove the trailing slash '/' if it exists.
-  const BACKEND_URL = "https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app"; 
+  const BACKEND_URL = "https://website-monitor-dashboard-6rmic2pys-nuwans-projects-0d23b1ca.vercel.app"; // static JSON URL
+  const SUBSCRIBE_API = "https://your-backend.vercel.app/subscribers"; // POST endpoint for subscriptions
 
   const toggleFullscreen = () => {
     const elem = document.documentElement;
@@ -45,18 +44,17 @@ function App() {
     } catch (err) {
       console.error("Subscriber fetch error:", err.message);
     }
-    // ❌ REMOVED: The accidental axios.post here was trying to subscribe an empty email on every page load!
+    axios.post("https://your-backend.vercel.app/api/subscribers", { email });
+
   };
 
   const addSubscriber = async () => {
     if (!email) return;
     try {
-      // ✅ FIX 2: Use the variable BACKEND_URL instead of the placeholder "your-backend.vercel.app"
-      await axios.post(`${BACKEND_URL}/subscribers`, { email });
+      // Send email subscription request to backend API
+      await axios.post(SUBSCRIBE_API, { email });
       setEmail("");
       setSubMessage("Subscribed successfully! ✅");
-      // Refresh count after adding
-      fetchSubscribers(); 
     } catch (err) {
       console.error("Subscription error:", err.message);
       setSubMessage("Error subscribing. Please try again. ❌");
@@ -69,7 +67,7 @@ function App() {
     fetchSubscribers();
     const interval = setInterval(fetchMonitors, 10000);
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
